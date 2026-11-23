@@ -3,7 +3,7 @@
   'use strict';
 
   const SUPABASE_URL = 'https://kjxwecacomkbyfqvnrob.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_3bKuWoJLCtf_bFcChNwUeg_ULngjygg';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqeHdlY2Fjb21rYnlmcXZucm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxMTM4MTIsImV4cCI6MjEwOTY4OTgxMn0.NHXQQsLWl2gs1tlM8jsA5U9XyeFK6k75jTFC_-_WTcU';
 
   if (!window.supabase?.createClient) {
     alert('کتابخانه Supabase بارگذاری نشده است.');
