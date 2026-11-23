@@ -162,7 +162,7 @@
 
       if (memberError) throw memberError;
 
-      if (!memberships?.some(m => m.status === 'approved')) {
+      if (!memberships?.some(m => ['approved', 'active'].includes(String(m.status || '').toLowerCase()))) {
         await db.auth.signOut();
         return authPage('ثبت‌نام شما در انتظار تأیید معلم است.');
       }
