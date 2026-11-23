@@ -3,7 +3,7 @@
   'use strict';
 
   const SUPABASE_URL = 'https://kjxwecacomkbyfqvnrob.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_3bKuwoJLCtf_bFcChNwUeg_ULngjygg';
+  const SUPABASE_KEY = 'sb_publishable_3bKuWoJLCtf_bFcChNwUeg_ULngjygg';
 
   if (!window.supabase?.createClient) {
     alert('کتابخانه Supabase بارگذاری نشده است.');
@@ -11,11 +11,10 @@
   }
 
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
   const $ = (s) => document.querySelector(s);
 
   function normalizeFa(value) {
-    return value.toLowerCase()
+    return String(value || '').toLowerCase()
       .replace(/[يى]/g, 'ی')
       .replace(/ك/g, 'ک')
       .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
@@ -35,8 +34,7 @@
   }
 
   function show(message) {
-    if (typeof window.alert === 'function') window.alert(message);
-    else alert(message);
+    alert(message);
   }
 
   function authPage(message = '') {
@@ -48,8 +46,8 @@
     <div class="card lg">
       <h2>🔑 ورود به حساب</h2>
       ${message ? `<p>${message}</p>` : ''}
-      <input id="online-user" placeholder="نام کاربری دانش‌آموز یا ایمیل معلم">
-      <input id="online-pass" type="password" placeholder="رمز عبور">
+      <input id="online-user" placeholder="نام کاربری دانش‌آموز یا ایمیل معلم" autocomplete="username">
+      <input id="online-pass" type="password" placeholder="رمز عبور" autocomplete="current-password">
       <button style="width:100%" onclick="onlineLogin()">ورود 🚀</button>
       <button style="width:100%;background:var(--p)" onclick="onlineRegisterPage()">ثبت‌نام دانش‌آموز جدید ✨</button>
     </div>`);
@@ -94,6 +92,7 @@
 
     try {
       const email = await studentEmail(username);
+
       const { data, error } = await db.auth.signUp({
         email,
         password,
@@ -109,26 +108,42 @@
       if (error) throw error;
 
       if (!data.session) {
-        return authPage('حساب ساخته شد. برای ورود، تأیید ایمیل باید در تنظیمات Supabase غیرفعال باشد؛ چون حساب دانش‌آموز ایمیل واقعی ندارد.');
+        return authPage('حساب ساخته شد؛ اما نشست ورود ایجاد نشد. تنظیم تأیید ایمیل Supabase را بررسی کن.');
       }
 
       show('ثبت‌نام انجام شد. درخواست شما برای تأیید معلم ارسال شد.');
       await db.auth.signOut();
       authPage();
+
     } catch (error) {
       show('ثبت‌نام انجام نشد: ' + (error.message || 'خطای نامشخص'));
     }
   };
 
   window.onlineLogin = async function () {
-    const username = $('#online-user')?.value.trim() || '';
-    const password = $('#online-pass')?.value || '';
+    const userInput = document.getElementById('online-user');
+    const passInput = document.getElementById('online-pass');
 
-    if (!username || !password)
-      return show('نام کاربری و رمز را وارد کن.');
+    if (!userInput || !passInput) {
+      return show('فیلدهای ورود پیدا نشدند. صفحه را دوباره باز کن.');
+    }
+
+    const username = String(userInput.value || '').trim();
+    const password = String(passInput.value || '');
+
+    if (!username && !password)
+      return show('هر دو فیلد نام کاربری و رمز خالی هستند.');
+
+    if (!username)
+      return show('نام کاربری دریافت نشده است.');
+
+    if (!password)
+      return show('رمز عبور دریافت نشده است.');
 
     try {
-      const email = username.includes('@') ? username : await studentEmail(username);
+      const email = username.includes('@')
+        ? username
+        : await studentEmail(username);
 
       const { data, error } = await db.auth.signInWithPassword({
         email,
@@ -162,18 +177,27 @@
 
       if (memberError) throw memberError;
 
-      if (!memberships?.some(m => ['approved', 'active'].includes(String(m.status || '').toLowerCase()))) {
+      if (!memberships?.some(m =>
+        String(m.status || '').toLowerCase() === 'approved'
+      )) {
         await db.auth.signOut();
         return authPage('ثبت‌نام شما در انتظار تأیید معلم است.');
       }
 
       D.cur = profile.username || profile.nickname || username;
       D.users ??= {};
-      D.users[D.cur] ??= { pts: 0, ok: 0, no: 0, pr: {}, log: [] };
+      D.users[D.cur] ??= {
+        pts: 0,
+        ok: 0,
+        no: 0,
+        pr: {},
+        log: []
+      };
+
       home();
 
     } catch (error) {
-      show('ورود انجام نشد: ' + (error.message || 'نام کاربری یا رمز اشتباه است.'));
+      show('ورود انجام نشد: ' + (error.message || 'خطای نامشخص'));
     }
   };
 
@@ -183,7 +207,8 @@
       .select('id,name,grade_label')
       .order('name');
 
-    if (error) return show('دریافت کلاس‌ها انجام نشد: ' + error.message);
+    if (error)
+      return show('دریافت کلاس‌ها انجام نشد: ' + error.message);
 
     let content = `<div class="card">
       <h2>👩‍🏫 پنل معلم</h2>
@@ -209,7 +234,9 @@
         const result = await db.from('profiles')
           .select('id,username,nickname,role')
           .in('id', ids);
-        if (!result.error) profiles = result.data || [];
+
+        if (!result.error)
+          profiles = result.data || [];
       }
 
       content += `<div class="card">
@@ -244,9 +271,13 @@
       p_action: action
     });
 
-    if (error) return show('انجام نشد: ' + error.message);
+    if (error)
+      return show('انجام نشد: ' + error.message);
 
-    show(action === 'approve' ? 'دانش‌آموز تأیید شد.' : 'درخواست رد شد.');
+    show(action === 'approve'
+      ? 'دانش‌آموز تأیید شد.'
+      : 'درخواست رد شد.');
+
     await teacherPanel();
   };
 
@@ -256,15 +287,15 @@
     authPage();
   };
 
-  // ورود آنلاین جایگزین ورود محلی می‌شود.
   window.login = () => authPage();
   window.rgf = () => onlineRegisterPage();
   window.rg = () => onlineRegister();
   window.go = () => onlineLogin();
   window.adm = () => authPage('برای ورود معلم، ایمیل و رمز حساب معلم را وارد کن.');
 
-  // در شروع، صفحه ورود آنلاین نمایش داده می‌شود.
   db.auth.getSession().then(({ data }) => {
-    if (!data.session) authPage();
+    if (!data.session)
+      authPage();
   });
+
 })();
